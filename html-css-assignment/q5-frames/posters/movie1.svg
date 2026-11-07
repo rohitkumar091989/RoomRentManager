@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+  <rect width="120" height="180" fill="#0d1b2a"/>
+  <circle cx="60" cy="65" r="38" fill="none" stroke="#ffd166" stroke-width="4"/><circle cx="60" cy="65" r="20" fill="#000000"/><circle cx="20" cy="20" r="1.5" fill="#fff"/><circle cx="100" cy="30" r="1.5" fill="#fff"/><circle cx="90" cy="115" r="1.5" fill="#fff"/><circle cx="15" cy="100" r="1.5" fill="#fff"/>
+  <text x="60" y="150" font-family="Arial Black, Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffd166" text-anchor="middle">INTERSTELLAR</text>
+  <text x="60" y="166" font-family="Arial, sans-serif" font-size="6.5" fill="#ffffff" text-anchor="middle">A JOURNEY BEYOND THE STARS</text>
+</svg>

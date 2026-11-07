@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Table Layout</title>
+  <style>
+    body {
+      font-family: "Times New Roman", Times, serif;
+      padding: 40px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+    td {
+      border: 1px solid #000000;
+      width: 120px;
+      height: 40px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .top    { color: #ff0000; }   /* red    */
+    .mid1   { color: #92d050; }   /* green  */
+    .mid2   { color: #ffc000; }   /* gold   */
+    .center { color: #7030a0; }   /* purple */
+    .bottom { color: #0070c0; }   /* blue   */
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <td class="top">TL</td>
+      <td class="top">T1</td>
+      <td class="top">T2</td>
+      <td class="top">TR</td>
+    </tr>
+    <tr>
+      <td class="mid1">LM1</td>
+      <td class="center" colspan="2" rowspan="2">CENTER</td>
+      <td class="mid1">RM1</td>
+    </tr>
+    <tr>
+      <td class="mid2">LM2</td>
+      <td class="mid2">RM2</td>
+    </tr>
+    <tr>
+      <td class="bottom">BL</td>
+      <td class="bottom">B1</td>
+      <td class="bottom">B2</td>
+      <td class="bottom">BR</td>
+    </tr>
+  </table>
+</body>
+</html>

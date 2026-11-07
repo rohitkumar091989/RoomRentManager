@@ -1,0 +1,52 @@
+body {
+  font-family: "Times New Roman", Times, serif;
+  margin: 10px;
+}
+.menu {
+  background-color: #ffff00;
+  text-align: center;
+  font-size: 18px;
+}
+.menu ol {
+  display: inline-block;
+  text-align: left;
+  margin: 5px 0;
+}
+.menu a {
+  color: #0000ee;
+}
+.placeholder {
+  text-align: center;
+  color: #555555;
+  font-size: 18px;
+  padding-top: 40px;
+}
+.movie {
+  overflow: hidden;
+}
+.movie img {
+  float: left;
+  width: 120px;
+  height: 180px;
+  margin-right: 12px;
+  border: 1px solid #333333;
+}
+.movie h2 {
+  margin: 0 0 6px;
+  color: #b71c1c;
+  font-size: 20px;
+}
+.movie p {
+  margin: 4px 0;
+  font-size: 15px;
+}
+.footer {
+  background-color: #ff3399;
+  color: #ffffff;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0;
+  padding: 15px;
+  height: 100%;
+}

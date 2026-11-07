@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+  <rect width="120" height="180" fill="#fbc02d"/>
+  <circle cx="30" cy="70" r="16" fill="#5d4037"/><circle cx="60" cy="60" r="16" fill="#5d4037"/><circle cx="90" cy="70" r="16" fill="#5d4037"/><rect x="16" y="88" width="28" height="40" rx="6" fill="#1565c0"/><rect x="46" y="78" width="28" height="50" rx="6" fill="#c62828"/><rect x="76" y="88" width="28" height="40" rx="6" fill="#2e7d32"/>
+  <text x="60" y="150" font-family="Arial Black, Arial, sans-serif" font-size="13" font-weight="bold" fill="#b71c1c" text-anchor="middle">3 IDIOTS</text>
+  <text x="60" y="166" font-family="Arial, sans-serif" font-size="8" fill="#ffffff" text-anchor="middle">ALL IS WELL</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+  <rect width="120" height="180" fill="#ff8f00"/>
+  <circle cx="60" cy="65" r="45" fill="#ffca28"/><path d="M10 120 L40 80 L55 95 L60 60 L75 120 Z" fill="#3e2723"/><circle cx="60" cy="56" r="5" fill="#3e2723"/>
+  <text x="60" y="150" font-family="Arial Black, Arial, sans-serif" font-size="13" font-weight="bold" fill="#3e2723" text-anchor="middle">THE LION KING</text>
+  <text x="60" y="166" font-family="Arial, sans-serif" font-size="8" fill="#ffffff" text-anchor="middle">LONG LIVE THE KING</text>
+</svg>

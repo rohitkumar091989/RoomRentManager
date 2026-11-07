@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lost &amp; Found Notice</title>
+  <style>
+    body {
+      font-family: "Times New Roman", Times, serif;
+      background-color: #eef1f5;
+      margin: 0;
+      padding: 30px 10px;
+    }
+    .notice {
+      max-width: 750px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border: 3px double #0b3d91;
+      padding: 25px 35px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    /* a. College logo + b. Department name */
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #0b3d91;
+      padding-bottom: 10px;
+    }
+    .header img {
+      width: 100px;
+      height: 100px;
+    }
+    .header h1 {
+      margin: 8px 0 2px;
+      color: #0b3d91;
+      font-size: 28px;
+    }
+    .header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: #333333;
+      letter-spacing: 2px;
+    }
+    /* c. Scrolling text in green */
+    .scrolling {
+      color: green;
+      font-size: 26px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+    /* d. Body of the notice: centrally aligned */
+    .body {
+      text-align: center;
+      font-size: 17px;
+      line-height: 1.6;
+    }
+    .body h3 {
+      text-decoration: underline;
+      font-size: 22px;
+      margin: 10px 0;
+    }
+    table {
+      margin: 15px auto;
+      border-collapse: collapse;
+      width: 90%;
+    }
+    th, td {
+      border: 1px solid #555555;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #0b3d91;
+      color: #ffffff;
+    }
+    tr:nth-child(even) td {
+      background-color: #f3f6fb;
+    }
+    /* e, f, g. Date (left) and signature (right) on the same line */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 35px;
+    }
+    .date {
+      text-align: left;
+    }
+    .signature {
+      text-align: right;
+    }
+    .signature img {
+      display: block;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="notice">
+
+    <div class="header">
+      <img src="logo.svg" alt="College Logo">
+      <h1>XYZ College, University of Delhi</h1>
+      <h2>LOST &amp; FOUND DEPARTMENT</h2>
+    </div>
+
+    <marquee class="scrolling" behavior="scroll" direction="left" scrollamount="8">
+      FOUND! FOUND! FOUND!
+    </marquee>
+
+    <div class="body">
+      <h3>NOTICE</h3>
+      <p>
+        This is to inform all students that the following items were found
+        in the college campus during the last month (October 2026)
+        and have been deposited with the Lost &amp; Found Department.
+      </p>
+
+      <table>
+        <tr>
+          <th>S. No.</th>
+          <th>Item Found</th>
+          <th>Place Found</th>
+          <th>Date Found</th>
+        </tr>
+        <tr><td>1</td><td>Black Wrist Watch</td><td>Library, Reading Hall</td><td>03-10-2026</td></tr>
+        <tr><td>2</td><td>Blue Water Bottle</td><td>Computer Lab 2</td><td>07-10-2026</td></tr>
+        <tr><td>3</td><td>Scientific Calculator (Casio)</td><td>Room No. 104</td><td>11-10-2026</td></tr>
+        <tr><td>4</td><td>Grey Umbrella</td><td>College Canteen</td><td>15-10-2026</td></tr>
+        <tr><td>5</td><td>Pair of Spectacles</td><td>Auditorium</td><td>19-10-2026</td></tr>
+        <tr><td>6</td><td>Brown Leather Wallet</td><td>Sports Ground</td><td>24-10-2026</td></tr>
+        <tr><td>7</td><td>Pen Drive (32 GB)</td><td>Computer Lab 1</td><td>29-10-2026</td></tr>
+      </table>
+
+      <p>
+        Students who have lost any of the above items, or something similar,
+        in the past month or before, are requested to visit the
+        Lost &amp; Found Department (Room No. 12, Ground Floor) between
+        <b>10:00 AM and 1:00 PM</b> on any working day to identify and claim their belongings.
+        Please carry your <b>College ID Card</b> and give a correct description of the item.
+      </p>
+      <p>Unclaimed items will be disposed of after <b>30 November 2026</b>.</p>
+    </div>
+
+    <div class="footer">
+      <div class="date">
+        <b>Date of Issue:</b> 07-11-2026
+      </div>
+      <div class="signature">
+        <img src="signature.svg" alt="Signature">
+        <b>(Dr. A. K. Sharma)</b><br>
+        In-charge, Lost &amp; Found Department
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

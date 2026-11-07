@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grocery List</title>
+  <style>
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 20px;
+      background-color: #f1f8e9;
+      padding: 20px 40px;
+    }
+    h1 {
+      color: #33691e;
+    }
+    ol.main  { list-style-type: lower-alpha; }   /* a. b. */
+    ul.sub   { list-style-type: circle; margin-left: 60px; }  /* o */
+    ol.items { list-style-type: lower-alpha; margin-left: 40px; }  /* a. b. c. */
+    li {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>List of Groceries</h1>
+
+  <ol class="main">
+    <li>Fruits &amp; vegetables
+      <ul class="sub">
+        <li>Fruits
+          <ol class="items">
+            <li>Apple</li>
+            <li>Oranges</li>
+            <li>Mango</li>
+          </ol>
+        </li>
+        <li>Vegetables
+          <ol class="items">
+            <li>Potato &amp; Tomato</li>
+            <li>Cauliflower</li>
+            <li>Jackfruit</li>
+            <li>Gourd Apple</li>
+          </ol>
+        </li>
+      </ul>
+    </li>
+    <li>Dairy Products
+      <ul class="sub">
+        <li>Milk</li>
+        <li>Curd</li>
+        <li>Buttermilk</li>
+      </ul>
+    </li>
+  </ol>
+</body>
+</html>
