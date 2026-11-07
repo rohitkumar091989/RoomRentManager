@@ -1,6 +1,6 @@
 # Assignment I: HTML & CSS (SEC Sem-I, Front End Web Design & Development)
 
-Open any of these files in a web browser:
+Open `index.html` for a menu of all five questions, or open any of these files directly in a web browser:
 
 | Q | Task | File |
 |---|------|------|
