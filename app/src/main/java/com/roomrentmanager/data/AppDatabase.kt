@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [RentalRoom::class, Tenant::class, Payment::class],
     version = 1,
-    exportSchema = true,
+    exportSchema = false, // Legacy v1 class; replaced by data.local.AppDatabase.
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun rentDao(): RentDao

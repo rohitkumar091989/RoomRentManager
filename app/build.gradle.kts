@@ -40,8 +40,9 @@ android {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
     sourceSets {
-        // Exported Room schemas are needed by MigrationTestHelper in unit (Robolectric) tests.
-        getByName("test").assets.srcDir("$projectDir/schemas")
+        // MigrationTestHelper reads exported schemas from app assets. Robolectric only sees the
+        // variant's merged assets, so add them to debug builds (release builds do not include them).
+        getByName("debug").assets.srcDir("$projectDir/schemas")
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
