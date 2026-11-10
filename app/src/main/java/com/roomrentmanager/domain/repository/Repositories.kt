@@ -91,6 +91,10 @@ interface AuditRepository {
 interface SettingsRepository {
     val reminderSettings: kotlinx.coroutines.flow.StateFlow<com.roomrentmanager.domain.usecase.ReminderSettings>
     fun update(settings: com.roomrentmanager.domain.usecase.ReminderSettings)
+
+    /** Require fingerprint/face/screen lock to open the app. A local privacy control only. */
+    val appLockEnabled: kotlinx.coroutines.flow.StateFlow<Boolean>
+    fun setAppLockEnabled(enabled: Boolean)
 }
 
 /** Read side: everything the screens show, as one consistent, live snapshot. */

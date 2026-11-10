@@ -25,6 +25,9 @@ import com.roomrentmanager.domain.usecase.ResolveMigrationReviewUseCase
 import com.roomrentmanager.domain.usecase.ReversePaymentUseCase
 import com.roomrentmanager.domain.usecase.RunRemindersUseCase
 import com.roomrentmanager.worker.ReminderScheduler
+import com.roomrentmanager.data.backup.BackupManager
+import com.roomrentmanager.data.backup.RestoreManager
+import java.io.File
 import java.time.Clock
 
 /**
@@ -38,6 +41,9 @@ class AppContainer(
     val clock: Clock,
     val settings: SettingsRepository = InMemorySettingsRepository(),
     val requestReminderCheck: () -> Unit = {},
+    /** Where the safety copy taken before a restore is kept (app-private storage). */
+    safetyDir: File? = null,
+    appVersion: String? = null,
 ) {
     private val tx = RoomTransactionRunner(db)
     private val properties = PropertyRepositoryImpl(db, clock)
@@ -59,6 +65,8 @@ class AppContainer(
     val manageExpenses = ManageExpensesUseCase(tx, properties, operations, audit, clock)
     val manageMaintenance = ManageMaintenanceUseCase(tx, properties, tenancies, operations, audit, clock)
     val runReminders = RunRemindersUseCase(tx, portfolio, operations, clock)
+    val backup = BackupManager(db, clock, audit, appVersion)
+    val restore = RestoreManager(db, clock, backup, audit, safetyDir)
 
     companion object {
         @Volatile
@@ -75,6 +83,8 @@ class AppContainer(
                         // Best effort: a scheduling problem must never fail the save that triggered it.
                         runCatching { ReminderScheduler.runSoon(app) }
                     },
+                    safetyDir = File(app.filesDir, "backups"),
+                    appVersion = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull(),
                 )
             }.also { instance = it }
         }

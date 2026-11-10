@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -65,7 +67,8 @@ fun ListCard(
 
 @Composable
 fun StatCard(label: String, paise: Long, modifier: Modifier = Modifier) {
-    Card(modifier) {
+    // Read as one item by screen readers: "Due this month, ₹10,000.00".
+    Card(modifier.semantics(mergeDescendants = true) {}) {
         Column(Modifier.padding(12.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium)
             Text(money(paise), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -85,7 +88,7 @@ fun Banner(text: String, actionLabel: String? = null, onAction: () -> Unit = {})
 
 @Composable
 fun SectionHeader(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+    Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
 }
 
 @Composable

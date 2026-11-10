@@ -51,6 +51,7 @@ enum class MoreSection(val label: String, val description: String) {
     Maintenance("Maintenance", "Requests, priority, status and cost"),
     Reports("Reports", "Collection, outstanding, statements, income and occupancy"),
     Reminders("Reminders", "Rent, overdue, deposit and maintenance reminders"),
+    Settings("Backup and privacy", "Backup, restore, CSV export, app lock and privacy"),
 }
 
 /** The dialog currently open. Serializable so it survives rotation along with the form's fields. */
@@ -73,7 +74,7 @@ sealed interface DialogState : Serializable {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RentApp(vm: RentViewModel = viewModel()) {
+fun RentApp(vm: RentViewModel = viewModel(), onAppLockChange: AppLockChanger? = null) {
     val state by vm.state.collectAsState()
     var tab by rememberSaveable { mutableStateOf(Tab.Dashboard) }
     var dialog by rememberSaveable { mutableStateOf<DialogState?>(null) }
@@ -152,12 +153,14 @@ fun RentApp(vm: RentViewModel = viewModel()) {
                     MoreSection.Maintenance -> MaintenanceScreen(state, show)
                     MoreSection.Reports -> ReportsScreen(state)
                     MoreSection.Reminders -> RemindersScreen(state, vm, openTenant = { openTenantId = it })
+                    MoreSection.Settings -> SettingsScreen(state, vm, onAppLockChange)
                 }
             }
         }
     }
 
     DialogHost(dialog, state, vm, onDismiss = { dialog = null })
+    RestoreConfirmDialog(vm)
 }
 
 @Composable

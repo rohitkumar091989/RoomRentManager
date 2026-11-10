@@ -54,6 +54,35 @@ Database triggers back these rules up: ledger, allocation, deposit and audit row
 or deleted, payments cannot be deleted, allocations cannot exceed the payment or the charge, and a
 room cannot have two active tenancies. Every financial action is written to an audit log.
 
+## Backup, restore and export
+
+**More → Backup and privacy**:
+
+- **Back up now** saves one JSON file (anywhere you choose: Google Drive, Downloads, email) with
+  every table, a schema version, the export time and a SHA-256 checksum.
+- **Restore from a backup** reads the whole file and checks it before changing anything: file format,
+  schema version, exact tables and columns, value types, required values, dates, status values,
+  record counts and the checksum. It then shows what the backup contains next to what is on the
+  phone, and only replaces data after you confirm. The replacement runs in one transaction that is
+  re-checked with the same rules as the database triggers plus a foreign-key check; if anything is
+  wrong it rolls back and the current data stays as it was.
+- The data on the phone before a restore is kept, and **Undo last restore** brings it back.
+- **Export as CSV** writes a ZIP with one spreadsheet file per table (paise columns also shown in
+  rupees). It is for reading, not for restoring.
+
+Backups and exports contain tenant names, phone numbers and payments, so keep them private.
+
+## Privacy and app lock
+
+- Records stay on the phone. The app has no account, analytics or ads, and does not request internet
+  access. Other permissions come from WorkManager (restart reminders after a reboot) and the
+  biometric library.
+- Android's automatic cloud backup is off (`allowBackup="false"`); use **Back up now** instead. On
+  Android 12+, a direct phone-to-phone transfer that you start yourself may copy the app's data.
+- **App lock** (optional) asks for fingerprint, face or the screen lock when the app opens and after
+  30 seconds in the background, and hides the app in the recent-apps view. Turning it on needs one
+  successful unlock first. It is a local privacy control, not a separate account.
+
 ## Reminders
 
 A WorkManager job runs once a day and shortly after the app is opened or data changes. It works out
@@ -92,9 +121,10 @@ app/src/main/java/com/roomrentmanager/
   data/
     local/               Room entities, DAOs, converters, triggers, database, migrations
     repository/          Room-backed repository implementations
-  data/settings/         device preferences (reminder settings)
+  data/backup/           backup format, backup/CSV export, validated restore
+  data/settings/         device preferences (reminder settings, app lock)
   worker/                ReminderWorker, scheduler and notifications
-  ui/                    Compose screens, dialogs, ViewModel
+  ui/                    Compose screens, dialogs, ViewModel, app lock
 app/schemas/             exported Room schemas (committed; used by migration tests)
 ```
 
@@ -115,14 +145,25 @@ With the Android SDK installed and `ANDROID_HOME` set (or `sdk.dir` in `local.pr
 Tests cover money conversion, billing dates (month ends, leap years, move-out), allocation, reversal,
 deposits, database integrity rules, the v1 → v2 migration against a real v1 database, expenses,
 maintenance, every report, reminder planning and de-duplication, the reminder worker's
-notifications, and the main screens. Exported schemas are added to debug-build assets so Robolectric migration tests can read
+notifications, backup round trips and every way a backup is rejected or rolled back, the CSV
+export, the app lock, and the main screens.
+
+To render screenshots of the main screens with sample data (into `app/build/screenshots/`):
+
+```sh
+SCREENSHOTS=1 ./gradlew testDebugUnitTest --tests '*ScreenshotTour*'
+``` Exported schemas are added to debug-build assets so Robolectric migration tests can read
 them; release builds do not include them.
 
 Install on a phone with `adb install app/build/outputs/apk/debug/app-debug.apk`, or in Android
 Studio use **Build > Build App Bundle(s) / APK(s) > Build APK(s)**.
 
-## Not yet built
+## Known limitations
 
-Planned for the next milestone: backup/restore and data export, app lock, a privacy review (including
-the Android backup policy), and accessibility polish. Tenant-facing screens on a tenant's own phone,
-and sending reminders to tenants automatically, would need a backend and are out of scope for now.
+- Not yet tested on a physical device or emulator; all tests run on the JVM with Robolectric.
+  Biometric prompts and real notifications in particular need a check on a real phone.
+- Release builds are unsigned and not shrunk (R8 is off); signing needs your own key.
+- Dates are typed as YYYY-MM-DD; there is no date picker yet.
+- Backups are not encrypted. Rent changes are only allowed on a rent day (no proration).
+- Tenant-facing access on a tenant's own phone, and sending reminders automatically, would need a
+  backend and are out of scope for this offline release.

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup policy (Android 12+). Automatic cloud backup is off (android:allowBackup="false"), so
+  tenant and payment records are never uploaded anywhere the landlord did not choose; the in-app
+  "Back up now" is the supported backup. A direct phone-to-phone transfer, which the user starts
+  when setting up a new phone, may copy the database and preferences across.
+-->
+<data-extraction-rules>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

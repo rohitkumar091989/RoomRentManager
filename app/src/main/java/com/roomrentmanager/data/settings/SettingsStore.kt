@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Reminder preferences are per-device conveniences, not financial records, so they live in
+ * Reminder and app-lock preferences are per-device conveniences, not financial records, so they live in
  * SharedPreferences rather than the database (and are not part of a data backup).
  */
 class SharedPrefsSettingsRepository(context: Context) : SettingsRepository {
@@ -39,6 +39,13 @@ class SharedPrefsSettingsRepository(context: Context) : SettingsRepository {
             .apply()
         state.value = settings
     }
+
+    private val lock = MutableStateFlow(prefs.getBoolean("appLock", false))
+    override val appLockEnabled: StateFlow<Boolean> = lock.asStateFlow()
+    override fun setAppLockEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("appLock", enabled).apply()
+        lock.value = enabled
+    }
 }
 
 /** For tests and previews. */
@@ -47,5 +54,11 @@ class InMemorySettingsRepository(initial: ReminderSettings = ReminderSettings())
     override val reminderSettings: StateFlow<ReminderSettings> = state.asStateFlow()
     override fun update(settings: ReminderSettings) {
         state.value = settings
+    }
+
+    private val lock = MutableStateFlow(false)
+    override val appLockEnabled: StateFlow<Boolean> = lock.asStateFlow()
+    override fun setAppLockEnabled(enabled: Boolean) {
+        lock.value = enabled
     }
 }

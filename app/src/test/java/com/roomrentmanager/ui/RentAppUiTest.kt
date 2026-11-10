@@ -271,4 +271,15 @@ class RentAppUiTest {
         waitFor("Remind before rent is due: 5 days before")
         org.junit.Assert.assertEquals(5, container.settings.reminderSettings.value.daysBeforeDue)
     }
+
+    @Test
+    fun backupAndPrivacySettingsAreReachable() {
+        tab("More")
+        click("Backup and privacy")
+        waitFor("Back up now")
+        waitFor("Restore from a backup")
+        waitFor("Export as CSV")
+        waitFor("Require fingerprint, face or screen lock")
+        waitFor("No account, no analytics", substring = true)
+    }
 }

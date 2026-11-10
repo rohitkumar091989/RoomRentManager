@@ -10,7 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import com.roomrentmanager.domain.finance.AllocationMode
 import com.roomrentmanager.domain.finance.BillingCycleCalculator
@@ -277,18 +281,21 @@ fun PaymentDialog(state: UiState, presetTenancyId: Long?, vm: RentViewModel, onD
         TextInput(note, { note = it }, "Note (optional)")
         Text("Apply to", style = MaterialTheme.typography.labelLarge)
         AllocationChoice.entries.forEach { c ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = choice == c, onClick = { choice = c })
+            Row(Modifier.selectable(selected = choice == c, role = Role.RadioButton, onClick = { choice = c }), verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = choice == c, onClick = null)
                 Text(c.label)
             }
         }
         if (choice == AllocationChoice.SELECTED) {
             if (open.isEmpty()) Text("No open charges.")
             open.forEach { charge ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = charge.entry.id in selected, onCheckedChange = { on ->
+                Row(
+                    Modifier.toggleable(value = charge.entry.id in selected, role = Role.Checkbox, onValueChange = { on ->
                         selected = if (on) selected + charge.entry.id else selected - charge.entry.id
-                    })
+                    }),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = charge.entry.id in selected, onCheckedChange = null)
                     Text("${charge.entry.dueDate ?: ""} ${charge.entry.description}: ${money(charge.outstandingPaise)}", style = MaterialTheme.typography.bodySmall)
                 }
             }

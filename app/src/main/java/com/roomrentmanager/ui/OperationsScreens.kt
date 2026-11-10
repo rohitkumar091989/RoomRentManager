@@ -39,6 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -243,8 +246,8 @@ fun MaintenanceDialog(request: MaintenanceRequest?, state: UiState, vm: RentView
         if (status == MaintenanceStatus.COMPLETED) DateInput(completed, { completed = it }, "Completed on")
         MoneyInput(cost, { cost = it }, "Cost (optional)", required = false)
         if (status == MaintenanceStatus.COMPLETED && !wasCompleted && (costPaise ?: 0) > 0) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = asExpense, onCheckedChange = { asExpense = it })
+            Row(Modifier.toggleable(value = asExpense, role = Role.Checkbox, onValueChange = { asExpense = it }), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = asExpense, onCheckedChange = null)
                 Text("Also record the cost as an expense", style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -392,19 +395,43 @@ fun ReportsScreen(state: UiState) {
             }
         }
         if (report.rows.isEmpty() && report.headers.isNotEmpty()) item { EmptyText("Nothing to show for this report.") }
-        if (report.rows.isNotEmpty()) item { TableRow(report.headers, header = true) }
+        val wide = report.headers.size > MAX_TABLE_COLUMNS
+        if (report.rows.isNotEmpty() && !wide) item { TableRow(report.headers, header = true) }
         itemsIndexed(report.rows) { _, row ->
-            TableRow(row, header = false)
+            if (wide) StackedRow(report.headers, row) else TableRow(row, header = false)
             HorizontalDivider()
         }
         items(report.notes) { Text(it, style = MaterialTheme.typography.bodySmall) }
     }
 }
 
+/** More columns than this do not fit a phone screen; such rows are stacked instead. */
+private const val MAX_TABLE_COLUMNS = 5
+
+/** A wide report row as a block: the first cell as a title, then label/value pairs, two per line. */
+@Composable
+private fun StackedRow(headers: List<String>, cells: List<String>) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(cells.first(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        headers.drop(1).zip(cells.drop(1)).chunked(2).forEach { pair ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                pair.forEach { (label, value) ->
+                    Row(Modifier.weight(1f)) {
+                        Text(label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, softWrap = false)
+                    }
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
 /** One row of a report. The first column is wider; the rest are right-aligned amounts. */
 @Composable
 private fun TableRow(cells: List<String>, header: Boolean) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    // Each row is read as one item ("Green Villa, ₹15,000.00, ...") rather than cell by cell.
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         cells.forEachIndexed { i, cell ->
             Text(
                 cell,

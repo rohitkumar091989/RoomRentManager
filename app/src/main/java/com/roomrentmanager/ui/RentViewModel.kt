@@ -1,6 +1,12 @@
 package com.roomrentmanager.ui
 
 import android.app.Application
+import android.net.Uri
+import com.roomrentmanager.data.backup.BackupContents
+import com.roomrentmanager.data.backup.InvalidBackupException
+import java.io.IOException
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -156,6 +162,79 @@ class RentViewModel(app: Application) : AndroidViewModel(app) {
         c.requestReminderCheck()
     }
 
+    // Backup, export and restore
+    data class RestorePreview(val contents: BackupContents, val currentCounts: Map<String, Int>)
+
+    private val _restorePreview = MutableStateFlow<RestorePreview?>(null)
+    val restorePreview: StateFlow<RestorePreview?> = _restorePreview.asStateFlow()
+    private val _canUndoRestore = MutableStateFlow(c.restore.hasUndo())
+    val canUndoRestore: StateFlow<Boolean> = _canUndoRestore.asStateFlow()
+    private val _busy = MutableStateFlow(false)
+    val busy: StateFlow<Boolean> = _busy.asStateFlow()
+
+    private fun io(successMessage: String?, block: suspend () -> Unit) {
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                withContext(Dispatchers.IO) { block() }
+                successMessage?.let { _messages.emit(it) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: InvalidBackupException) {
+                _messages.emit(e.message ?: "This backup cannot be restored.")
+            } catch (e: IOException) {
+                Log.w(TAG, "File access failed", e)
+                _messages.emit("Could not access the file. Nothing was changed.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Backup action failed", e)
+                _messages.emit("Something went wrong. Nothing was changed.")
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
+    private val resolver get() = getApplication<Application>().contentResolver
+
+    fun backupTo(uri: Uri) = io("Backup saved. Keep it somewhere safe, such as Google Drive or a computer.") {
+        (resolver.openOutputStream(uri, "wt") ?: throw IOException("No output stream")).use { c.backup.writeBackup(it) }
+    }
+
+    fun exportCsvTo(uri: Uri) = io("Export saved.") {
+        (resolver.openOutputStream(uri, "wt") ?: throw IOException("No output stream")).use { c.backup.writeCsvExport(it) }
+    }
+
+    /** Reads and fully validates a backup, then asks for confirmation. Nothing is changed yet. */
+    fun inspectBackup(uri: Uri) = io(null) {
+        val text = (resolver.openInputStream(uri) ?: throw IOException("No input stream")).use { input ->
+            val bytes = input.readBytes()
+            if (bytes.size > MAX_BACKUP_BYTES) throw InvalidBackupException("This file is too large to be a backup.")
+            bytes.toString(Charsets.UTF_8)
+        }
+        _restorePreview.value = RestorePreview(c.restore.inspect(text), c.backup.counts())
+    }
+
+    fun cancelRestore() {
+        _restorePreview.value = null
+    }
+
+    fun confirmRestore() {
+        val preview = _restorePreview.value ?: return
+        _restorePreview.value = null
+        io("Backup restored. The data you had before is kept so you can undo this.") {
+            c.restore.restore(preview.contents)
+            _canUndoRestore.value = c.restore.hasUndo()
+            withContext(Dispatchers.Main) { refreshCharges() }
+        }
+    }
+
+    fun undoLastRestore() = io("Your previous data is back.") {
+        c.restore.undoLastRestore()
+        withContext(Dispatchers.Main) { refreshCharges() }
+    }
+
+    val appLockEnabled: StateFlow<Boolean> get() = c.settings.appLockEnabled
+
     // Imported v1 records
     fun applyLegacyPayment(reviewId: Long, tenancyId: Long) = run { resolveReview.applyPaymentToTenancy(reviewId, tenancyId) }
     fun keepLegacyPayment(reviewId: Long) = run { resolveReview.keepPaymentAsHistory(reviewId) }
@@ -163,5 +242,6 @@ class RentViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val TAG = "RentViewModel"
+        const val MAX_BACKUP_BYTES = 64 * 1024 * 1024
     }
 }
