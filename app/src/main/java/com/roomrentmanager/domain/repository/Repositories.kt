@@ -69,9 +69,28 @@ interface FinanceRepository {
     suspend fun updateReview(item: ReviewItem, resolvedAt: Long)
 }
 
+interface OperationsRepository {
+    suspend fun getExpense(id: Long): com.roomrentmanager.domain.model.Expense?
+    suspend fun insertExpense(expense: com.roomrentmanager.domain.model.Expense): Long
+    suspend fun updateExpense(expense: com.roomrentmanager.domain.model.Expense)
+    suspend fun getMaintenance(id: Long): com.roomrentmanager.domain.model.MaintenanceRequest?
+    suspend fun insertMaintenance(request: com.roomrentmanager.domain.model.MaintenanceRequest): Long
+    suspend fun updateMaintenance(request: com.roomrentmanager.domain.model.MaintenanceRequest)
+    suspend fun reminderKeys(): Set<String>
+    /** Inserts a reminder; returns its id, or null if one with the same key already exists. */
+    suspend fun insertReminder(reminder: com.roomrentmanager.domain.model.Reminder): Long?
+    suspend fun setReminderStatus(id: Long, status: com.roomrentmanager.domain.model.ReminderStatus)
+}
+
 interface AuditRepository {
     suspend fun log(eventType: String, entityType: String, entityId: Long?, description: String)
     suspend fun forEntity(entityType: String, entityId: Long): List<AuditEvent>
+}
+
+/** Device preferences (not financial data). */
+interface SettingsRepository {
+    val reminderSettings: kotlinx.coroutines.flow.StateFlow<com.roomrentmanager.domain.usecase.ReminderSettings>
+    fun update(settings: com.roomrentmanager.domain.usecase.ReminderSettings)
 }
 
 /** Read side: everything the screens show, as one consistent, live snapshot. */

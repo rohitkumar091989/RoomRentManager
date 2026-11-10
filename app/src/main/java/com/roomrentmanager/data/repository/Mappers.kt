@@ -1,6 +1,9 @@
 package com.roomrentmanager.data.repository
 
+import com.roomrentmanager.data.local.AppNotificationEntity
 import com.roomrentmanager.data.local.AuditLogEntity
+import com.roomrentmanager.data.local.ExpenseEntity
+import com.roomrentmanager.data.local.MaintenanceRequestEntity
 import com.roomrentmanager.data.local.DepositTransactionEntity
 import com.roomrentmanager.data.local.MigrationReviewEntity
 import com.roomrentmanager.data.local.PaymentAllocationEntity
@@ -14,6 +17,9 @@ import com.roomrentmanager.data.local.TenantEntity
 import com.roomrentmanager.domain.model.AuditEvent
 import com.roomrentmanager.domain.model.BillingMode
 import com.roomrentmanager.domain.model.DepositTransaction
+import com.roomrentmanager.domain.model.Expense
+import com.roomrentmanager.domain.model.MaintenanceRequest
+import com.roomrentmanager.domain.model.Reminder
 import com.roomrentmanager.domain.model.LedgerEntry
 import com.roomrentmanager.domain.model.Payment
 import com.roomrentmanager.domain.model.PaymentAllocation
@@ -66,7 +72,7 @@ internal fun LedgerEntry.toEntity(now: Long) = RentLedgerEntity(
 )
 
 internal fun PaymentEntity.toDomain() =
-    Payment(id, tenancyId, amountPaise, paymentDate, paymentMethod, reference, note, status, reversalReason)
+    Payment(id, tenancyId, amountPaise, paymentDate, paymentMethod, reference, note, status, reversalReason, reversedAt)
 internal fun Payment.toEntity(now: Long) =
     PaymentEntity(id, tenancyId, amountPaise, paymentDate, method, reference, note, status, reversalReason, null, now)
 
@@ -83,3 +89,20 @@ internal fun MigrationReviewEntity.toDomain() =
     ReviewItem(id, entityType, entityId, reason, legacyData, suggestedTenancyId, status)
 
 internal fun AuditLogEntity.toDomain() = AuditEvent(id, eventType, entityType, entityId, description, createdAt)
+
+internal fun ExpenseEntity.toDomain() =
+    Expense(id, propertyId, roomId, category, amountPaise, LocalDate.parse(expenseDate), description, vendor)
+internal fun Expense.toEntity(createdAt: Long) =
+    ExpenseEntity(id, propertyId, roomId, category, amountPaise, date.toString(), description, vendor, createdAt)
+
+internal fun MaintenanceRequestEntity.toDomain() = MaintenanceRequest(
+    id, propertyId, roomId, tenancyId, title, description, priority, status,
+    LocalDate.parse(reportedDate), completedDate.toDate(), costPaise,
+)
+internal fun MaintenanceRequest.toEntity(createdAt: Long, now: Long) = MaintenanceRequestEntity(
+    id, propertyId, roomId, tenancyId, title, description, priority, status,
+    reportedDate.toString(), completedDate?.toString(), costPaise, createdAt, now,
+)
+
+internal fun AppNotificationEntity.toDomain() =
+    Reminder(id, reminderKey, kind, entityType, entityId, LocalDate.parse(dueDate), message, status)

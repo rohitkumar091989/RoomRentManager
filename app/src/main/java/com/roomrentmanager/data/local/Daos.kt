@@ -158,17 +158,26 @@ interface DepositDao {
     suspend fun insertDeposit(row: DepositTransactionEntity): Long
 }
 
-/** Expenses, maintenance and reminders. Screens for these arrive in milestone 5. */
+/** Expenses, maintenance and reminders. */
 @Dao
 interface OperationsDao {
     @Query("SELECT * FROM expenses ORDER BY expenseDate DESC, id DESC")
     fun observeExpenses(): Flow<List<ExpenseEntity>>
 
+    @Query("SELECT * FROM expenses WHERE id = :id")
+    suspend fun getExpense(id: Long): ExpenseEntity?
+
     @Insert
     suspend fun insertExpense(expense: ExpenseEntity): Long
 
+    @Update
+    suspend fun updateExpense(expense: ExpenseEntity)
+
     @Query("SELECT * FROM maintenance_requests ORDER BY reportedDate DESC, id DESC")
     fun observeMaintenance(): Flow<List<MaintenanceRequestEntity>>
+
+    @Query("SELECT * FROM maintenance_requests WHERE id = :id")
+    suspend fun getMaintenance(id: Long): MaintenanceRequestEntity?
 
     @Insert
     suspend fun insertMaintenance(request: MaintenanceRequestEntity): Long
@@ -176,11 +185,20 @@ interface OperationsDao {
     @Update
     suspend fun updateMaintenance(request: MaintenanceRequestEntity)
 
+    @Query("SELECT * FROM app_notifications ORDER BY dueDate DESC, id DESC")
+    fun observeNotifications(): Flow<List<AppNotificationEntity>>
+
+    @Query("SELECT reminderKey FROM app_notifications")
+    suspend fun notificationKeys(): List<String>
+
     @Query("SELECT * FROM app_notifications WHERE reminderKey = :key")
     suspend fun getNotification(key: String): AppNotificationEntity?
 
     @Insert
     suspend fun insertNotification(row: AppNotificationEntity): Long
+
+    @Query("UPDATE app_notifications SET status = :status WHERE id = :id")
+    suspend fun setNotificationStatus(id: Long, status: String)
 }
 
 @Dao

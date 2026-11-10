@@ -3,7 +3,10 @@ package com.roomrentmanager.domain.usecase
 import com.roomrentmanager.domain.finance.BillingCycleCalculator
 import com.roomrentmanager.domain.finance.FinanceCalculator
 import com.roomrentmanager.domain.finance.TenancyBalance
+import com.roomrentmanager.domain.model.MaintenanceRequest
 import com.roomrentmanager.domain.model.Payment
+import com.roomrentmanager.domain.model.Reminder
+import com.roomrentmanager.domain.model.ReminderStatus
 import com.roomrentmanager.domain.model.Portfolio
 import com.roomrentmanager.domain.model.Property
 import com.roomrentmanager.domain.model.RentAgreement
@@ -62,6 +65,11 @@ data class Dashboard(
     val recentPayments: List<Payment>,
     val pendingReviews: Int,
     val tenanciesNeedingAgreement: Int,
+    /** Open or in-progress maintenance, most urgent first. */
+    val openMaintenance: List<MaintenanceRequest> = emptyList(),
+    /** Reminders raised and not dismissed, newest first. */
+    val activeReminders: List<Reminder> = emptyList(),
+    val monthExpensesPaise: Long = 0,
 )
 
 /** Pure read-model calculations over a [Portfolio] snapshot. */
@@ -133,6 +141,11 @@ object PortfolioSummaries {
             recentPayments = p.payments.filter { it.tenancyId != null }.take(5),
             pendingReviews = p.reviews.count { it.status == ReviewStatus.PENDING },
             tenanciesNeedingAgreement = views.count { it.needsAgreement },
+            openMaintenance = p.maintenance.filter { it.isOpen }
+                .sortedWith(compareByDescending<MaintenanceRequest> { it.priority.ordinal }.thenBy { it.reportedDate }),
+            activeReminders = p.reminders.filter { it.status != ReminderStatus.DISMISSED && !it.dueDate.isBefore(today.minusDays(30)) }
+                .sortedWith(compareByDescending<Reminder> { it.dueDate }.thenByDescending { it.id }),
+            monthExpensesPaise = p.expenses.filter { YearMonth.from(it.date) == month }.sumOf { it.amountPaise },
         )
     }
 }

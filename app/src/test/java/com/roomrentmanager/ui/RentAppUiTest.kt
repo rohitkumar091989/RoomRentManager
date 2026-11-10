@@ -1,6 +1,7 @@
 package com.roomrentmanager.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -54,9 +55,8 @@ class RentAppUiTest {
     @After
     fun tearDown() = AppContainer.setForTests(null)
 
-    /** Waits until [text] is shown (not inside a text field), scrolling lazy lists to it if needed. */
-    private fun waitFor(text: String, substring: Boolean = false) {
-        val matcher = hasText(text, substring = substring) and !hasSetTextAction()
+    /** Waits until a node matching [matcher] exists, scrolling lazy lists to it if needed. */
+    private fun await(matcher: SemanticsMatcher, what: String) {
         try {
             compose.waitUntil(timeoutMillis = 10_000) {
                 if (compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()) return@waitUntil true
@@ -65,12 +65,17 @@ class RentAppUiTest {
                 compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
             }
         } catch (e: Throwable) {
-            throw AssertionError("'$text' not shown. On screen:\n" + screenText(), e)
+            throw AssertionError("$what not shown. On screen:\n" + screenText(), e)
         }
     }
 
+    /** Waits until [text] is shown outside a text field. */
+    private fun waitFor(text: String, substring: Boolean = false) =
+        await(hasText(text, substring = substring) and !hasSetTextAction(), "'$text'")
+
     private val isSnackbarMessage = listOf(
         "Tenancy started.", "Payment recorded.", "Payment reversed.", "Rent agreement saved.", "Tenancy ended. The room is now vacant.",
+        "Expense recorded.", "Expense corrected.",
     ).map { hasText(it) }.reduce { a, b -> a or b }
 
     private fun screenText(): String = compose.onAllNodes(isRoot()).fetchSemanticsNodes().joinToString("\n---\n") { root ->
@@ -94,12 +99,15 @@ class RentAppUiTest {
     }
 
     private fun click(text: String) {
-        val node = compose.onNode(hasText(text) and hasClickAction())
+        val matcher = hasText(text) and hasClickAction()
+        await(matcher, "Clickable '$text'")
         // A confirmation snackbar covers the bottom of the screen for a few seconds, as on a device.
         compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isSnackbarMessage).fetchSemanticsNodes().isEmpty() }
+        val node = compose.onNode(matcher)
         runCatching { node.performScrollTo() }
         node.performClick()
     }
+
     private fun tab(label: String) = click(label)
 
     /** Property, room and tenant created through the UI, then the room is let. */
@@ -204,5 +212,63 @@ class RentAppUiTest {
         click("Save")
         waitFor("deposit held ₹0.00", substring = true)
         waitFor("Owes ₹10,000.00") // refunds never touch rent
+    }
+
+    @Test
+    fun expenseFlowsIntoIncomeReport() {
+        setUpLetRoom()
+        tab("More")
+        click("Expenses")
+        waitFor("This month", substring = true)
+        compose.onNodeWithContentDescription("Add").performClick()
+        waitFor("Add expense")
+        type("Amount", "2500")
+        type("Description", "Tap replaced")
+        click("Save")
+        waitFor("Repairs · ₹2,500.00")
+
+        compose.onNode(hasContentDescription("Back")).performClick()
+        click("Reports")
+        waitFor("Rent collection, Apr 2026")
+        click("Report: Rent collection")
+        click("Property income and expenses")
+        waitFor("Income and expenses, Apr 2026")
+        waitFor("-₹2,500.00") // nothing received yet, ₹2,500 spent
+    }
+
+    @Test
+    fun maintenanceRequestAppearsOnDashboard() {
+        setUpLetRoom()
+        tab("More")
+        click("Maintenance")
+        compose.onNodeWithContentDescription("Add").performClick()
+        waitFor("New maintenance request")
+        type("What needs fixing", "Leaking tap")
+        click("Save")
+        waitFor("Leaking tap")
+        tab("Dashboard")
+        waitFor("Open maintenance (1)")
+    }
+
+    @Test
+    fun remindTenantOpensShareSheetWithMessage() {
+        setUpLetRoom()
+        click("Occupied by Asha")
+        click("Remind Asha")
+        val chooser = org.robolectric.Shadows.shadowOf(androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()).nextStartedActivity
+        val send = chooser.getParcelableExtra(android.content.Intent.EXTRA_INTENT, android.content.Intent::class.java)!!
+        val text = send.getStringExtra(android.content.Intent.EXTRA_TEXT)!!
+        org.junit.Assert.assertTrue(text, text.startsWith("Hello Asha") && text.contains("₹10,000.00"))
+    }
+
+    @Test
+    fun reminderSettingsCanBeChanged() {
+        tab("More")
+        click("Reminders")
+        waitFor("Reminders on")
+        click("Remind before rent is due: 2 days before")
+        click("5 days before")
+        waitFor("Remind before rent is due: 5 days before")
+        org.junit.Assert.assertEquals(5, container.settings.reminderSettings.value.daysBeforeDue)
     }
 }

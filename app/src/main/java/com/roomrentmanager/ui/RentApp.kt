@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -41,6 +42,15 @@ enum class Tab(val label: String, val icon: ImageVector) {
     Units("Units", Icons.AutoMirrored.Filled.List),
     Tenants("Tenants", Icons.Filled.Person),
     Payments("Payments", Icons.Filled.DateRange),
+    More("More", Icons.Filled.Menu),
+}
+
+/** Screens reached from the More tab. */
+enum class MoreSection(val label: String, val description: String) {
+    Expenses("Expenses", "Repairs, bills and other costs per property or unit"),
+    Maintenance("Maintenance", "Requests, priority, status and cost"),
+    Reports("Reports", "Collection, outstanding, statements, income and occupancy"),
+    Reminders("Reminders", "Rent, overdue, deposit and maintenance reminders"),
 }
 
 /** The dialog currently open. Serializable so it survives rotation along with the form's fields. */
@@ -57,6 +67,8 @@ sealed interface DialogState : Serializable {
     data class Adjustment(val tenancyId: Long) : DialogState
     data class CancelCharge(val tenancyId: Long, val ledgerEntryId: Long) : DialogState
     data class ApplyLegacyPayment(val reviewId: Long) : DialogState
+    data class EditExpense(val expenseId: Long?) : DialogState
+    data class EditMaintenance(val requestId: Long?) : DialogState
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,10 +78,13 @@ fun RentApp(vm: RentViewModel = viewModel()) {
     var tab by rememberSaveable { mutableStateOf(Tab.Dashboard) }
     var dialog by rememberSaveable { mutableStateOf<DialogState?>(null) }
     var openTenantId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var section by rememberSaveable { mutableStateOf<MoreSection?>(null) }
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }
-    BackHandler(enabled = openTenantId != null) { openTenantId = null }
+    BackHandler(enabled = openTenantId != null || section != null) {
+        if (openTenantId != null) openTenantId = null else section = null
+    }
 
     val show: (DialogState) -> Unit = { dialog = it }
     val detailTenant = openTenantId?.let { id -> state.portfolio.tenants.firstOrNull { it.id == id } }
@@ -77,10 +92,12 @@ fun RentApp(vm: RentViewModel = viewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(detailTenant?.name ?: tab.label) },
+                title = { Text(detailTenant?.name ?: section?.label ?: tab.label) },
                 navigationIcon = {
-                    if (detailTenant != null) {
-                        IconButton(onClick = { openTenantId = null }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    if (detailTenant != null || section != null) {
+                        IconButton(onClick = { if (detailTenant != null) openTenantId = null else section = null }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        }
                     }
                 },
                 actions = {
@@ -95,7 +112,7 @@ fun RentApp(vm: RentViewModel = viewModel()) {
                 Tab.entries.forEach { t ->
                     NavigationBarItem(
                         selected = tab == t && detailTenant == null,
-                        onClick = { tab = t; openTenantId = null },
+                        onClick = { tab = t; openTenantId = null; section = null },
                         icon = { Icon(t.icon, contentDescription = null) },
                         label = { Text(t.label) },
                     )
@@ -108,6 +125,8 @@ fun RentApp(vm: RentViewModel = viewModel()) {
                 tab == Tab.Units -> if (state.portfolio.properties.any { it.isActive }) DialogState.EditRoom(null, null) else DialogState.EditProperty(null)
                 tab == Tab.Tenants -> DialogState.EditTenant(null)
                 tab == Tab.Payments -> DialogState.RecordPayment(null)
+                tab == Tab.More && section == MoreSection.Expenses && state.portfolio.properties.any { it.isActive } -> DialogState.EditExpense(null)
+                tab == Tab.More && section == MoreSection.Maintenance && state.portfolio.properties.any { it.isActive } -> DialogState.EditMaintenance(null)
                 else -> null
             }
             if (action != null) FloatingActionButton(onClick = { show(action) }) { Icon(Icons.Filled.Add, contentDescription = "Add") }
@@ -118,10 +137,22 @@ fun RentApp(vm: RentViewModel = viewModel()) {
             when {
                 !state.loaded -> Unit
                 detailTenant != null -> TenantDetailScreen(state, detailTenant, vm, show)
-                tab == Tab.Dashboard -> DashboardScreen(state, vm, show, openTenant = { openTenantId = it }, openPayments = { tab = Tab.Payments })
+                tab == Tab.Dashboard -> DashboardScreen(
+                    state, vm, show,
+                    openTenant = { openTenantId = it },
+                    openPayments = { tab = Tab.Payments },
+                    openSection = { tab = Tab.More; section = it },
+                )
                 tab == Tab.Units -> UnitsScreen(state, vm, show, openTenant = { openTenantId = it })
                 tab == Tab.Tenants -> TenantsScreen(state, show, openTenant = { openTenantId = it })
                 tab == Tab.Payments -> PaymentsScreen(state, vm, show)
+                tab == Tab.More -> when (section) {
+                    null -> MoreScreen(onOpen = { section = it })
+                    MoreSection.Expenses -> ExpensesScreen(state, show)
+                    MoreSection.Maintenance -> MaintenanceScreen(state, show)
+                    MoreSection.Reports -> ReportsScreen(state)
+                    MoreSection.Reminders -> RemindersScreen(state, vm, openTenant = { openTenantId = it })
+                }
             }
         }
     }
@@ -154,5 +185,7 @@ private fun DialogHost(dialog: DialogState?, state: UiState, vm: RentViewModel, 
             ?.let { CancelChargeDialog(it, vm, onDismiss) }
         is DialogState.ApplyLegacyPayment -> p.reviews.firstOrNull { it.id == dialog.reviewId }
             ?.let { ApplyLegacyPaymentDialog(it, state.tenancies, vm, onDismiss) }
+        is DialogState.EditExpense -> ExpenseDialog(p.expenses.firstOrNull { it.id == dialog.expenseId }, state, vm, onDismiss)
+        is DialogState.EditMaintenance -> MaintenanceDialog(p.maintenance.firstOrNull { it.id == dialog.requestId }, state, vm, onDismiss)
     }
 }

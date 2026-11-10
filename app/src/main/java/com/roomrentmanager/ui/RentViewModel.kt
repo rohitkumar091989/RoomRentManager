@@ -13,7 +13,11 @@ import com.roomrentmanager.domain.model.Portfolio
 import com.roomrentmanager.domain.model.PropertyType
 import com.roomrentmanager.domain.model.ValidationException
 import com.roomrentmanager.domain.usecase.AgreementInput
+import com.roomrentmanager.domain.model.ReminderStatus
 import com.roomrentmanager.domain.usecase.Dashboard
+import com.roomrentmanager.domain.usecase.ExpenseInput
+import com.roomrentmanager.domain.usecase.MaintenanceInput
+import com.roomrentmanager.domain.usecase.ReminderSettings
 import com.roomrentmanager.domain.usecase.PaymentInput
 import com.roomrentmanager.domain.usecase.PortfolioSummaries
 import com.roomrentmanager.domain.usecase.RoomView
@@ -79,6 +83,7 @@ class RentViewModel(app: Application) : AndroidViewModel(app) {
                 Log.w(TAG, it.joinToString("\n"))
                 _messages.emit("Rent could not be posted for ${it.size} tenancy(ies). Check their rent agreements.")
             }
+            c.requestReminderCheck() // after charges are posted, so overdue reminders see them
         }
     }
 
@@ -89,6 +94,7 @@ class RentViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 c.block()
+                c.requestReminderCheck()
                 onSuccess()
                 successMessage?.let { _messages.emit(it) }
             } catch (e: CancellationException) {
@@ -137,6 +143,18 @@ class RentViewModel(app: Application) : AndroidViewModel(app) {
     fun addCredit(tenancyId: Long, amountPaise: Long, description: String, onSuccess: () -> Unit) =
         run(onSuccess) { adjustments.addCredit(tenancyId, amountPaise, description) }
     fun cancelCharge(entryId: Long, reason: String, onSuccess: () -> Unit) = run(onSuccess) { adjustments.cancelCharge(entryId, reason) }
+
+    // Expenses, maintenance, reminders
+    fun saveExpense(id: Long?, input: ExpenseInput, onSuccess: () -> Unit) =
+        run(onSuccess, if (id == null) "Expense recorded." else "Expense corrected.") { manageExpenses.save(id, input) }
+    fun saveMaintenance(id: Long?, input: MaintenanceInput, onSuccess: () -> Unit) =
+        run(onSuccess) { manageMaintenance.save(id, input) }
+    fun dismissReminder(id: Long) = run { runReminders.setStatus(id, ReminderStatus.DISMISSED) }
+    val reminderSettings: StateFlow<ReminderSettings> get() = c.settings.reminderSettings
+    fun updateReminderSettings(settings: ReminderSettings) {
+        c.settings.update(settings)
+        c.requestReminderCheck()
+    }
 
     // Imported v1 records
     fun applyLegacyPayment(reviewId: Long, tenancyId: Long) = run { resolveReview.applyPaymentToTenancy(reviewId, tenancyId) }

@@ -82,6 +82,8 @@ data class Payment(
     val note: String?,
     val status: PaymentStatus,
     val reversalReason: String?,
+    /** UTC epoch millis of the reversal, if reversed. */
+    val reversedAt: Long? = null,
 ) {
     val date: LocalDate? get() = runCatching { LocalDate.parse(paymentDate) }.getOrNull()
 
@@ -126,6 +128,45 @@ data class AuditEvent(
     val createdAt: Long,
 )
 
+data class Expense(
+    val id: Long,
+    val propertyId: Long,
+    val roomId: Long?,
+    val category: String,
+    val amountPaise: Long,
+    val date: LocalDate,
+    val description: String,
+    val vendor: String?,
+)
+
+data class MaintenanceRequest(
+    val id: Long,
+    val propertyId: Long,
+    val roomId: Long?,
+    val tenancyId: Long?,
+    val title: String,
+    val description: String,
+    val priority: MaintenancePriority,
+    val status: MaintenanceStatus,
+    val reportedDate: LocalDate,
+    val completedDate: LocalDate?,
+    val costPaise: Long?,
+) {
+    val isOpen: Boolean get() = status == MaintenanceStatus.OPEN || status == MaintenanceStatus.IN_PROGRESS
+}
+
+/** A reminder that has been raised once (deduplicated by [key]). Reminders never create charges. */
+data class Reminder(
+    val id: Long,
+    val key: String,
+    val kind: String,
+    val entityType: String,
+    val entityId: Long,
+    val dueDate: LocalDate,
+    val message: String,
+    val status: ReminderStatus,
+)
+
 /** Everything the screens need, loaded together so derived figures are always consistent. */
 data class Portfolio(
     val properties: List<Property> = emptyList(),
@@ -138,6 +179,9 @@ data class Portfolio(
     val allocations: List<PaymentAllocation> = emptyList(),
     val deposits: List<DepositTransaction> = emptyList(),
     val reviews: List<ReviewItem> = emptyList(),
+    val expenses: List<Expense> = emptyList(),
+    val maintenance: List<MaintenanceRequest> = emptyList(),
+    val reminders: List<Reminder> = emptyList(),
 )
 
 /** A rule was broken by user input. The message is shown to the user as-is. */

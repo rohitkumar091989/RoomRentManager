@@ -74,7 +74,14 @@ private fun OverflowMenu(items: List<Pair<String, () -> Unit>>) {
 // Dashboard
 
 @Composable
-fun DashboardScreen(state: UiState, vm: RentViewModel, show: (DialogState) -> Unit, openTenant: (Long) -> Unit, openPayments: () -> Unit) {
+fun DashboardScreen(
+    state: UiState,
+    vm: RentViewModel,
+    show: (DialogState) -> Unit,
+    openTenant: (Long) -> Unit,
+    openPayments: () -> Unit,
+    openSection: (MoreSection) -> Unit,
+) {
     val d = state.dashboard ?: return
     LazyColumn(contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (d.pendingReviews > 0) {
@@ -100,10 +107,11 @@ fun DashboardScreen(state: UiState, vm: RentViewModel, show: (DialogState) -> Un
         item {
             Text(
                 "All tenants: outstanding ${money(d.totalOutstandingPaise)} (overdue ${money(d.totalOverduePaise)}) · advance credit ${money(d.totalCreditPaise)}\n" +
-                    "${d.propertyCount} properties · ${d.occupiedRooms} occupied · ${d.vacantRooms} vacant",
+                    "${d.propertyCount} properties · ${d.occupiedRooms} occupied · ${d.vacantRooms} vacant · expenses this month ${money(d.monthExpensesPaise)}",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
+        item { DashboardOperations(state, vm, openTenant, openSection) }
         if (d.upcoming.isNotEmpty()) {
             item { SectionHeader("Rent due in the next 7 days") }
             items(d.upcoming, key = { "up${it.tenancy.id}" }) { v ->
@@ -287,6 +295,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.tenancySection(v: Ten
                 if (v.balance.creditPaise > 0 && v.balance.outstandingPaise > 0) TextButton(onClick = { vm.applyCredit(id) }) { Text("Apply credit") }
                 if (v.isActive) TextButton(onClick = { show(DialogState.EndTenancy(id)) }) { Text("End") }
             }
+            val context = androidx.compose.ui.platform.LocalContext.current
+            TextButton(onClick = {
+                shareText(context, com.roomrentmanager.domain.usecase.ReminderPlanner.tenantMessage(v, state.today), "Rent reminder for ${v.tenant.name}")
+            }) { Text("Remind ${v.tenant.name}") }
         }
     }
     if (v.agreements.isNotEmpty()) {

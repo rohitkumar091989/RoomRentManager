@@ -2,7 +2,13 @@ package com.roomrentmanager.data.repository
 
 import androidx.room.withTransaction
 import com.roomrentmanager.data.local.AppDatabase
+import com.roomrentmanager.data.local.AppNotificationEntity
 import com.roomrentmanager.data.local.AuditLogEntity
+import com.roomrentmanager.domain.model.Expense
+import com.roomrentmanager.domain.model.MaintenanceRequest
+import com.roomrentmanager.domain.model.Reminder
+import com.roomrentmanager.domain.model.ReminderStatus
+import com.roomrentmanager.domain.repository.OperationsRepository
 import com.roomrentmanager.domain.model.DepositTransaction
 import com.roomrentmanager.domain.model.LedgerEntry
 import com.roomrentmanager.domain.model.Payment
@@ -111,6 +117,34 @@ class FinanceRepositoryImpl(db: AppDatabase, private val clock: Clock) : Finance
     }
 }
 
+class OperationsRepositoryImpl(db: AppDatabase, private val clock: Clock) : OperationsRepository {
+    private val dao = db.operationsDao()
+    private fun now() = clock.millis()
+
+    override suspend fun getExpense(id: Long) = dao.getExpense(id)?.toDomain()
+    override suspend fun insertExpense(expense: Expense) = dao.insertExpense(expense.copy(id = 0).toEntity(now()))
+    override suspend fun updateExpense(expense: Expense) {
+        val existing = checkNotNull(dao.getExpense(expense.id)) { "Expense ${expense.id} not found" }
+        dao.updateExpense(expense.toEntity(existing.createdAt))
+    }
+    override suspend fun getMaintenance(id: Long) = dao.getMaintenance(id)?.toDomain()
+    override suspend fun insertMaintenance(request: MaintenanceRequest) =
+        dao.insertMaintenance(request.copy(id = 0).toEntity(now(), now()))
+    override suspend fun updateMaintenance(request: MaintenanceRequest) {
+        val existing = checkNotNull(dao.getMaintenance(request.id)) { "Maintenance request ${request.id} not found" }
+        dao.updateMaintenance(request.toEntity(existing.createdAt, now()))
+    }
+    override suspend fun reminderKeys() = dao.notificationKeys().toSet()
+    override suspend fun insertReminder(reminder: Reminder): Long? {
+        if (dao.getNotification(reminder.key) != null) return null
+        return dao.insertNotification(
+            AppNotificationEntity(0, reminder.key, reminder.kind, reminder.entityType, reminder.entityId,
+                reminder.dueDate.toString(), reminder.message, reminder.status, now()),
+        )
+    }
+    override suspend fun setReminderStatus(id: Long, status: ReminderStatus) = dao.setNotificationStatus(id, status.name)
+}
+
 class AuditRepositoryImpl(db: AppDatabase, private val clock: Clock) : AuditRepository {
     private val dao = db.auditDao()
     override suspend fun log(eventType: String, entityType: String, entityId: Long?, description: String) {
@@ -133,6 +167,9 @@ class PortfolioRepositoryImpl(private val db: AppDatabase) : PortfolioRepository
             db.financeDao().observeAllocations(),
             db.depositDao().observeDeposits(),
             db.migrationDao().observeReview(),
+            db.operationsDao().observeExpenses(),
+            db.operationsDao().observeMaintenance(),
+            db.operationsDao().observeNotifications(),
         )
         return combine(flows) { a ->
             Portfolio(
@@ -146,6 +183,9 @@ class PortfolioRepositoryImpl(private val db: AppDatabase) : PortfolioRepository
                 allocations = (a[7] as List<com.roomrentmanager.data.local.PaymentAllocationEntity>).map { it.toDomain() },
                 deposits = (a[8] as List<com.roomrentmanager.data.local.DepositTransactionEntity>).map { it.toDomain() },
                 reviews = (a[9] as List<com.roomrentmanager.data.local.MigrationReviewEntity>).map { it.toDomain() },
+                expenses = (a[10] as List<com.roomrentmanager.data.local.ExpenseEntity>).map { it.toDomain() },
+                maintenance = (a[11] as List<com.roomrentmanager.data.local.MaintenanceRequestEntity>).map { it.toDomain() },
+                reminders = (a[12] as List<AppNotificationEntity>).map { it.toDomain() },
             )
         }
     }

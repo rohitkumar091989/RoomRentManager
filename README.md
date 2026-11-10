@@ -23,6 +23,18 @@ no account, backend or internet connection is needed.
 - **Deposits**: received, deducted (with a reason) and refunded, tracked separately from rent.
 - **Imported records**: data from app version 1 is migrated automatically. Anything the old version
   could not record reliably is listed under **Payments** for review rather than guessed.
+- **Expenses** (More tab): costs per property or per unit, by category, with the vendor. Corrections
+  are audited; expenses are never deleted.
+- **Maintenance** (More tab): requests with priority, status and cost, linked to the unit's current
+  tenancy. Completing a job can also record its cost as an expense.
+- **Reports** (More tab): rent collection by month, outstanding rent by age (1–30, 31–60, 61–90,
+  90+ days), tenant statement with running balance, deposit statement, property income and
+  expenses (month, calendar year or April–March financial year), and occupancy/vacancy. Any report
+  can be shared as text.
+- **Reminders**: rent due soon, rent overdue, deposits still held after move-out, and open
+  maintenance. Shown on the dashboard and, if allowed, as phone notifications. **Remind** on a
+  tenant opens your phone's share sheet (SMS, WhatsApp, ...) with a ready-made message; the app
+  itself sends nothing.
 
 ## How the money works
 
@@ -41,6 +53,16 @@ no account, backend or internet connection is needed.
 Database triggers back these rules up: ledger, allocation, deposit and audit rows cannot be edited
 or deleted, payments cannot be deleted, allocations cannot exceed the payment or the charge, and a
 room cannot have two active tenancies. Every financial action is written to an audit log.
+
+## Reminders
+
+A WorkManager job runs once a day and shortly after the app is opened or data changes. It works out
+reminders from stored tenancies, agreements, the ledger, deposits and maintenance, and records each
+one in `app_notifications` under a fixed key (for example `overdue:{tenancy}:{oldest due date}`), so
+the same reminder is never raised twice. Reminders never create charges; rent is posted when the
+app is opened. WorkManager keeps the daily job across reboots and app updates. On Android 13+ the
+app asks for notification permission from **More → Reminders**; without it, reminders still appear
+in the app. Reminder preferences are stored on the device only (not in the database).
 
 ## Upgrading from version 1
 
@@ -70,6 +92,8 @@ app/src/main/java/com/roomrentmanager/
   data/
     local/               Room entities, DAOs, converters, triggers, database, migrations
     repository/          Room-backed repository implementations
+  data/settings/         device preferences (reminder settings)
+  worker/                ReminderWorker, scheduler and notifications
   ui/                    Compose screens, dialogs, ViewModel
 app/schemas/             exported Room schemas (committed; used by migration tests)
 ```
@@ -89,8 +113,9 @@ With the Android SDK installed and `ANDROID_HOME` set (or `sdk.dir` in `local.pr
 ```
 
 Tests cover money conversion, billing dates (month ends, leap years, move-out), allocation, reversal,
-deposits, database integrity rules, the v1 → v2 migration against a real v1 database, and the main
-screens. Exported schemas are added to debug-build assets so Robolectric migration tests can read
+deposits, database integrity rules, the v1 → v2 migration against a real v1 database, expenses,
+maintenance, every report, reminder planning and de-duplication, the reminder worker's
+notifications, and the main screens. Exported schemas are added to debug-build assets so Robolectric migration tests can read
 them; release builds do not include them.
 
 Install on a phone with `adb install app/build/outputs/apk/debug/app-debug.apk`, or in Android
@@ -98,6 +123,6 @@ Studio use **Build > Build App Bundle(s) / APK(s) > Build APK(s)**.
 
 ## Not yet built
 
-Planned in later milestones: expense and maintenance screens (the tables already exist), reports and
-statements, local reminders (WorkManager), backup/restore and data export, app lock, and
-tenant-facing screens. Cross-device sync would need a backend and is out of scope for now.
+Planned for the next milestone: backup/restore and data export, app lock, a privacy review (including
+the Android backup policy), and accessibility polish. Tenant-facing screens on a tenant's own phone,
+and sending reminders to tenants automatically, would need a backend and are out of scope for now.
