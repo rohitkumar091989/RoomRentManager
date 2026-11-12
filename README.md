@@ -19,6 +19,9 @@ no account, backend or internet connection is needed.
 - **Payments**: full or partial payments by cash, UPI, bank transfer or other, applied oldest-due
   first, to selected charges, or kept as advance credit. Payments are reversed with a reason, never
   deleted.
+- **Dates**: type YYYY-MM-DD or tap the calendar button. The calendar only offers sensible days:
+  nothing in the future for payments, expenses, deposits, move-out and maintenance; nothing before
+  move-in for rent start; and only rent days when changing rent.
 - **Adjustments**: extra charges, late fees, credits, and cancelling the unpaid part of a charge.
 - **Deposits**: received, deducted (with a reason) and refunded, tracked separately from rent.
 - **Imported records**: data from app version 1 is migrated automatically. Anything the old version
@@ -163,7 +166,6 @@ Studio use **Build > Build App Bundle(s) / APK(s) > Build APK(s)**.
 - Not yet tested on a physical device or emulator; all tests run on the JVM with Robolectric.
   Biometric prompts and real notifications in particular need a check on a real phone.
 - Release builds are unsigned and not shrunk (R8 is off); signing needs your own key.
-- Dates are typed as YYYY-MM-DD; there is no date picker yet.
 - Backups are not encrypted. Rent changes are only allowed on a rent day (no proration).
 - Tenant-facing access on a tenant's own phone, and sending reminders automatically, would need a
   backend and are out of scope for this offline release.

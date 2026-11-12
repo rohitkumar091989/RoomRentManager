@@ -39,6 +39,7 @@ import com.roomrentmanager.ui.components.MoneyInput
 import com.roomrentmanager.ui.components.Picker
 import com.roomrentmanager.ui.components.TextInput
 import com.roomrentmanager.ui.components.money
+import com.roomrentmanager.ui.components.notAfter
 import com.roomrentmanager.ui.components.parseDateOrNull
 import java.time.LocalDate
 
@@ -156,8 +157,8 @@ fun StartTenancyDialog(state: UiState, presetRoomId: Long?, presetTenantId: Long
         Picker("Tenant", tenants.firstOrNull { it.id == tenantId }?.name ?: "Choose", tenants.map { it.id to it.name }) { tenantId = it }
         DateInput(moveIn, { moveIn = it }, "Move-in date")
         MoneyInput(rent, { rent = it }, "Monthly rent")
-        TextInput(rentFrom, { rentFrom = it }, "Rent starts on (blank = move-in date)",
-            isError = rentFrom.isNotBlank() && parseDateOrNull(rentFrom) == null)
+        DateInput(rentFrom, { rentFrom = it }, "Rent starts on (blank = move-in date)", optional = true,
+            selectable = { moveInDate == null || !it.isBefore(moveInDate) })
         TextInput(rentDay, { rentDay = it }, "Rent due day of month (blank = ${rentStart?.dayOfMonth ?: "start day"})",
             isError = rentDay.isNotBlank() && rentDay.toIntOrNull() !in 1..31, keyboard = KeyboardType.Number)
         Text("Rent is charged in advance on this day each month. In shorter months the last day is used.", style = MaterialTheme.typography.bodySmall)
@@ -205,7 +206,11 @@ fun AgreementDialog(view: TenancyView, today: LocalDate, vm: RentViewModel, onDi
             Text("No rent is charged for any period before this date.", style = MaterialTheme.typography.bodySmall)
         }
         MoneyInput(rent, { rent = it }, if (current == null) "Monthly rent" else "New monthly rent")
-        DateInput(from, { from = it }, "Effective from")
+        // Only rent days can be chosen for a change: rent never changes mid-period.
+        DateInput(from, { from = it }, "Effective from", selectable = { d ->
+            !d.isBefore(view.tenancy.moveIn) && (anchor == null || BillingCycleCalculator.isBillingDate(d, anchor)) &&
+                (lastCharged == null || d.isAfter(lastCharged))
+        })
         if (anchor == null) {
             TextInput(rentDay, { rentDay = it }, "Rent due day of month (blank = ${fromDate?.dayOfMonth ?: "start day"})",
                 isError = rentDay.isNotBlank() && rentDay.toIntOrNull() !in 1..31, keyboard = KeyboardType.Number)
@@ -221,7 +226,7 @@ fun EndTenancyDialog(view: TenancyView, today: LocalDate, vm: RentViewModel, onD
     FormDialog(title = "End tenancy", canSave = date != null, onDismiss = onDismiss, saveLabel = "End tenancy",
         onSave = { vm.endTenancy(view.tenancy.id, date!!, onDismiss) }) {
         Text(tenancyLabel(view), style = MaterialTheme.typography.bodyMedium)
-        DateInput(moveOut, { moveOut = it }, "Move-out (handover) date")
+        DateInput(moveOut, { moveOut = it }, "Move-out (handover) date", selectable = { !it.isBefore(view.tenancy.moveIn) && !it.isAfter(today) })
         Text(
             "Rent periods starting on or after this date are not charged; unpaid charges already posted for them are cancelled. " +
                 "Payments, deposit and history are kept. Outstanding: ${money(view.balance.outstandingPaise)}; deposit held: ${money(view.depositHeldPaise)}.",
@@ -275,7 +280,7 @@ fun PaymentDialog(state: UiState, presetTenancyId: Long?, vm: RentViewModel, onD
             Text("Outstanding ${money(view.balance.outstandingPaise)} · credit ${money(view.balance.creditPaise)}", style = MaterialTheme.typography.bodySmall)
         }
         MoneyInput(amount, { amount = it }, "Amount received")
-        DateInput(date, { date = it }, "Received on")
+        DateInput(date, { date = it }, "Received on", selectable = notAfter(state.today))
         Picker("Method", method.label(), PaymentMethod.entries.map { it to it.label() }) { method = it }
         TextInput(reference, { reference = it }, "Reference / UPI ID (optional)")
         TextInput(note, { note = it }, "Note (optional)")
@@ -335,7 +340,7 @@ fun DepositDialog(view: TenancyView, today: LocalDate, vm: RentViewModel, onDism
         Text("${tenancyLabel(view)} · held ${money(view.depositHeldPaise)}", style = MaterialTheme.typography.bodyMedium)
         Picker("Type", type.label(), listOf(DepositTransactionType.RECEIVED, DepositTransactionType.DEDUCTION, DepositTransactionType.REFUND).map { it to it.label() }) { type = it }
         MoneyInput(amount, { amount = it }, "Amount")
-        DateInput(date, { date = it }, "Date")
+        DateInput(date, { date = it }, "Date", selectable = notAfter(today))
         TextInput(note, { note = it }, if (type == DepositTransactionType.DEDUCTION) "What the deduction is for" else "Note (optional)")
         Text("Deposits are tracked separately and are never used for rent automatically.", style = MaterialTheme.typography.bodySmall)
     }

@@ -1,6 +1,12 @@
 package com.roomrentmanager.ui
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.semantics.SemanticsNode
@@ -281,5 +287,37 @@ class RentAppUiTest {
         waitFor("Export as CSV")
         waitFor("Require fingerprint, face or screen lock")
         waitFor("No account, no analytics", substring = true)
+    }
+
+    /** A day cell in the open date picker; cells are labelled with the full date, e.g. "April 30, 2026". */
+    private fun day(monthDayYear: String) = compose.onNode(hasText(monthDayYear, substring = true) and hasClickAction() and hasAnyAncestor(isDialog()))
+
+    // Robolectric's default 320x470dp screen is shorter than the calendar dialog, so a tap can land
+    // outside the clipped window. Day cells and OK are activated through their click action instead.
+    @Test
+    fun datePickerFillsFieldAndBlocksFutureDays() {
+        setUpLetRoom()
+        tab("Dashboard")
+        click("Collect")
+        waitFor("Record payment")
+        compose.onNodeWithContentDescription("Choose Received on from calendar").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Received on") and hasAnyAncestor(isDialog()) and !hasSetTextAction(), 10_000)
+        day("April 30, 2026").assertIsNotEnabled() // today is 5 April 2026: payments cannot be in the future
+        day("April 1, 2026").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNode(hasText("OK") and hasClickAction()).performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNode(hasSetTextAction() and hasText("2026-04-01")).assertExists()
+    }
+
+    @Test
+    fun rentChangePickerOffersOnlyRentDays() {
+        setUpLetRoom() // rent due on the 5th; April is already charged
+        click("Occupied by Asha")
+        click("Change rent")
+        waitFor("Change rent", substring = false)
+        compose.onNodeWithContentDescription("Choose Effective from from calendar").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("May 2026", substring = true) and hasAnyAncestor(isDialog()), 10_000)
+        day("May 5, 2026").assertIsEnabled()
+        day("May 6, 2026").assertIsNotEnabled()
+        day("May 4, 2026").assertIsNotEnabled()
     }
 }

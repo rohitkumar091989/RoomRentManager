@@ -67,6 +67,7 @@ import com.roomrentmanager.ui.components.Picker
 import com.roomrentmanager.ui.components.SectionHeader
 import com.roomrentmanager.ui.components.TextInput
 import com.roomrentmanager.ui.components.money
+import com.roomrentmanager.ui.components.notAfter
 import com.roomrentmanager.ui.components.parseDateOrNull
 import java.time.YearMonth
 import java.time.ZoneId
@@ -155,7 +156,7 @@ fun ExpenseDialog(expense: Expense?, state: UiState, vm: RentViewModel, onDismis
             listOf<Pair<Long?, String>>(null to "Whole property") + rooms.map { it.id to it.name }) { roomId = it }
         Picker("Category", category, (ExpenseCategories.ALL + listOfNotNull(expense?.category)).distinct().map { it to it }) { category = it }
         MoneyInput(amount, { amount = it }, "Amount")
-        DateInput(date, { date = it }, "Date paid")
+        DateInput(date, { date = it }, "Date paid", selectable = notAfter(state.today))
         TextInput(description, { description = it }, "Description")
         TextInput(vendor, { vendor = it }, "Paid to (optional)")
         if (expense != null) Text("Corrections are kept in the audit log. Expenses are never deleted.", style = MaterialTheme.typography.bodySmall)
@@ -242,8 +243,12 @@ fun MaintenanceDialog(request: MaintenanceRequest?, state: UiState, vm: RentView
         TextInput(description, { description = it }, "Details (optional)")
         Picker("Priority", priority.label(), MaintenancePriority.entries.map { it to it.label() }) { priority = it }
         Picker("Status", status.label(), MaintenanceStatus.entries.map { it to it.label() }) { status = it }
-        DateInput(reported, { reported = it }, "Reported on")
-        if (status == MaintenanceStatus.COMPLETED) DateInput(completed, { completed = it }, "Completed on")
+        DateInput(reported, { reported = it }, "Reported on", selectable = notAfter(state.today))
+        if (status == MaintenanceStatus.COMPLETED) {
+            DateInput(completed, { completed = it }, "Completed on", selectable = { d ->
+                !d.isAfter(state.today) && (reportedDate == null || !d.isBefore(reportedDate))
+            })
+        }
         MoneyInput(cost, { cost = it }, "Cost (optional)", required = false)
         if (status == MaintenanceStatus.COMPLETED && !wasCompleted && (costPaise ?: 0) > 0) {
             Row(Modifier.toggleable(value = asExpense, role = Role.Checkbox, onValueChange = { asExpense = it }), verticalAlignment = Alignment.CenterVertically) {

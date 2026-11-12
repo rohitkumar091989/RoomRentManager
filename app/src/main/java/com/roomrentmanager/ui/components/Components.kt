@@ -12,14 +12,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.roomrentmanager.domain.finance.Money
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 fun money(paise: Long): String = Money.format(paise)
 
@@ -146,10 +156,64 @@ fun MoneyInput(value: String, onChange: (String) -> Unit, label: String, require
     TextInput(value, onChange, "$label (₹)", isError = value.isNotEmpty() && invalid, keyboard = KeyboardType.Decimal)
 }
 
+/**
+ * A date field: type YYYY-MM-DD or tap the calendar button to pick. [selectable] limits which days
+ * the picker offers (for example nothing after today); typed dates are still checked by the use
+ * cases, so the restriction is a convenience, not the rule. With [optional], a blank field is valid.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DateInput(value: String, onChange: (String) -> Unit, label: String) {
-    TextInput(value, onChange, "$label (YYYY-MM-DD)", isError = parseDateOrNull(value) == null)
+fun DateInput(
+    value: String,
+    onChange: (String) -> Unit,
+    label: String,
+    optional: Boolean = false,
+    selectable: ((LocalDate) -> Boolean)? = null,
+) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val parsed = parseDateOrNull(value)
+    OutlinedTextField(
+        value, onChange,
+        label = { Text("$label (YYYY-MM-DD)") },
+        singleLine = true,
+        isError = !(optional && value.isBlank()) && parsed == null,
+        trailingIcon = {
+            IconButton(onClick = { picking = true }) { Icon(Icons.Filled.DateRange, contentDescription = "Choose $label from calendar") }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (!picking) return
+
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = parsed?.takeIf { selectable?.invoke(it) != false }?.toUtcMillis(),
+        initialDisplayedMonthMillis = (parsed ?: LocalDate.now()).withDayOfMonth(1).toUtcMillis(),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = selectable?.invoke(utcTimeMillis.toUtcDate()) != false
+        },
+    )
+    DatePickerDialog(
+        onDismissRequest = { picking = false },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    state.selectedDateMillis?.let { onChange(it.toUtcDate().toString()) }
+                    picking = false
+                },
+                enabled = state.selectedDateMillis != null,
+            ) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = { picking = false }) { Text("Cancel") } },
+    ) {
+        DatePicker(state = state, title = { Text(label, modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)) })
+    }
 }
+
+/** Material's date picker works in UTC midnight milliseconds. */
+private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+private fun Long.toUtcDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
+
+/** For date fields that cannot be in the future. */
+fun notAfter(day: LocalDate): (LocalDate) -> Boolean = { !it.isAfter(day) }
 
 @Composable
 fun <T> Picker(label: String, selected: String, options: List<Pair<T, String>>, onSelect: (T) -> Unit) {
